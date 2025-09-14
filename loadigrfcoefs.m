@@ -1,25 +1,25 @@
 function [g, h] = loadigrfcoefs(time)
 
 % LOADIGRFCOEFS Load coefficients used in IGRF model.
-% 
+%
 % Usage: [G, H] = LOADIGRFCOEFS(TIME) or GH = LOADIGRFCOEFS(TIME)
-% 
+%
 % Loads the coefficients used in the IGRF model at time TIME in MATLAB
 % serial date number format and performs the necessary interpolation. If
 % two output arguments are requested, this returns the properly
 % interpolated matrices G and H from igrfcoefs.mat. If just one output is
 % requested, the proper coefficient vector GH from igrfcoefs.mat is
 % returned.
-% 
+%
 % If this function cannot find a file called igrfcoefs.mat in the MATLAB
 % path, it will try to create it by calling GETIGRFCOEFS.
-% 
+%
 % Inputs:
 %   -TIME: Time to load coefficients either in MATLAB serial date number
 %   format or a string that can be converted into MATLAB serial date number
 %   format using DATENUM with no format specified (see documentation of
 %   DATENUM for more information).
-% 
+%
 % Outputs:
 %   -G: g coefficients matrix (with n going down the rows, m along the
 %   columns) interpolated as necessary for the input TIME.
@@ -27,11 +27,11 @@ function [g, h] = loadigrfcoefs(time)
 %   columns) interpolated as necessary for the input TIME.
 %   -GH: g and h coefficient vector formatted as:
 %   [g(n=1,m=0) g(n=1,m=1) h(n=1,m=1) g(n=2,m=0) g(n=2,m=1) h(n=2,m=1) ...]
-% 
+%
 % Edits:
 %  Will Brown, BGS, 26-11-2019
 %    Corrected error with input of 1900.0 exactly
-% 
+%
 % See also: IGRF, GETIGRFCOEFS.
 
 % Convert time to a datenumber if it is a string.
@@ -53,7 +53,9 @@ time = timevec(1) + (time - datenum([timevec(1) 1 1]))./(365 + double(...
 if ~exist('igrfcoefs.mat', 'file')
     getigrfcoefs;
 end
-load igrfcoefs.mat;
+
+current_folder = fileparts(mfilename('fullpath'));
+load(fullfile(current_folder, 'igrfcoefs.mat'));
 
 % Check validity on time.
 yrs = cell2mat({coefs.year});
@@ -72,11 +74,11 @@ nextepoch = lastepoch + 1;
 % Output either g and h matrices or gh vector depending on the number of
 % outputs requested.
 if nargout > 1
-    
+
     % Get the coefficients based on the epoch.
     lastg = coefs(lastepoch).g; lasth = coefs(lastepoch).h;
     nextg = coefs(nextepoch).g; nexth = coefs(nextepoch).h;
-    
+
     % If one of the coefficient matrices is smaller than the other, enlarge
     % the smaller one with 0's.
     if size(lastg, 1) > size(nextg, 1)
@@ -104,13 +106,13 @@ if nargout > 1
     end
     g = lastg + gslope*(time - yrs(lastepoch));
     h = lasth + hslope*(time - yrs(lastepoch));
-    
+
 else
-    
+
     % Get the coefficients based on the epoch.
     lastgh = coefs(lastepoch).gh;
     nextgh = coefs(nextepoch).gh;
-    
+
     % If one of the coefficient vectors is smaller than the other, enlarge
     % the smaller one with 0's.
     if length(lastgh) > length(nextgh)
@@ -122,7 +124,7 @@ else
         lastgh = zeros(size(nextgh));
         lastgh(1:smalln) = coefs(lastepoch).gh;
     end
-    
+
     % Calculate gh using a linear interpolation between the last and next
     % epoch.
     if coefs(nextepoch).slope
@@ -131,5 +133,5 @@ else
         ghslope = (nextgh - lastgh)/diff(yrs([lastepoch nextepoch]));
     end
     g = lastgh + ghslope*(time - yrs(lastepoch));
-    
+
 end
